@@ -1,9 +1,14 @@
 package com.example.freatnor.external_content_providers_lab;
 
+import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
+import android.icu.util.Calendar;
+import android.net.Uri;
 import android.provider.CalendarContract;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
@@ -11,6 +16,7 @@ import android.support.v4.content.Loader;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +31,7 @@ import java.util.Date;
 import java.util.TimeZone;
 
 public class MainActivity extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor>{
+    private static final String TAG = "MainActivity";
     private static final int CALENDAR_LOADER = 10;
 
     private ListView mListView;
@@ -53,9 +60,11 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
                 TextView dateText = (TextView) view.findViewById(android.R.id.text2);
                 titleText.setText(cursor.getString(cursor.getColumnIndex(CalendarContract.Events.TITLE)));
                 //get the date from the utc milliseconds
-                Date date = new Date(cursor.getInt(cursor.getColumnIndex(CalendarContract.Events.DTSTART)));
+                Date date = new Date(cursor.getLong(cursor.getColumnIndex(CalendarContract.Events.DTSTART)));
+                Log.d(TAG, "bindView: date for " + titleText.getText().toString() + " is " + cursor.getLong(cursor.getColumnIndex(CalendarContract.Events.DTSTART)));
                 SimpleDateFormat sdf = new SimpleDateFormat();
-                sdf.setTimeZone(TimeZone.getTimeZone("EST"));
+                Log.d(TAG, "bindView: " + cursor.getString(cursor.getColumnIndex(CalendarContract.Events.EVENT_TIMEZONE)));
+                sdf.setTimeZone(TimeZone.getTimeZone(cursor.getString(cursor.getColumnIndex(CalendarContract.Events.EVENT_TIMEZONE))));
                 dateText.setText(sdf.format(date));
             }
         };
@@ -91,7 +100,8 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
             case CALENDAR_LOADER:
                 return new CursorLoader(this, CalendarContract.Events.CONTENT_URI,
                         new String[]{CalendarContract.Events._ID, CalendarContract.Events.TITLE,
-                                CalendarContract.Events.DTSTART}, null, null, CalendarContract.Events.DTSTART + " DESC");
+                                CalendarContract.Events.DTSTART, CalendarContract.Events.EVENT_TIMEZONE},
+                        null, null, CalendarContract.Events.DTSTART + " ASC");
             default:
                 return null;
         }
@@ -105,5 +115,13 @@ public class MainActivity extends AppCompatActivity implements LoaderManager.Loa
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
         mCursorAdapter.changeCursor(null);
+    }
+
+    public void onAddClick(View view){
+
+        Intent intent = new Intent(Intent.ACTION_INSERT)
+                .setData(CalendarContract.Events.CONTENT_URI);
+        startActivity(intent);
+
     }
 }
